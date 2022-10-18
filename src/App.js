@@ -1,25 +1,28 @@
-import logo from './logo.svg';
-import './App.css';
+const config = require('./utils/config')
+const express = require('express')
+const app = express()
+const cors = require('cors')
+const blogsRouter = require('./controllers/blogs')
+const middleware = require('./utils/middleware')
+const logger = require('./utils/logger')
+const mongoose = require('mongoose')
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
-}
+mongoose.connect(config.MONGODB_URI)
+  .then(() => {
+    logger.info('connected to MongoDB')
+  })
+  .catch((error) => {
+    logger.error('error connecting to MongoDB', error.message)
+  })
 
-export default App;
+app.use(cors())
+app.use(express.static('build'))
+app.use(express.json())
+app.use(middleware.requestLogger)
+
+app.use('/api/blogs', blogsRouter)
+
+app.use(middleware.unknownEndpoint)
+app.use(middleware.errorHandler)
+
+module.exports = app
