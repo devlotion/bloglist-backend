@@ -1,4 +1,5 @@
 const Blog = require('../models/blog')
+const User = require('../models/user')
 
 const initialBlogs = [
   {
@@ -51,11 +52,27 @@ const initialBlogs = [
   }
 ]
 
+const initialUsers = [
+  {
+    username: 'root',
+    name: 'superuser',
+    password: 'admin'
+  },
+  {
+    username: 'Yuri',
+    name: 'Yuri',
+    password: 'yuri'
+  },
+]
+
 const nonExistingId = async () => {
-  const blog = new Blog({ content: 'willremovethissoon', date: new Date() })
+  const blog = new Blog({
+    title: 'nonexist',
+    author: 'nonexist',
+    url: 'nonexist.com',
+  })
   await blog.save()
   await blog.remove()
-
   return blog._id.toString()
 }
 
@@ -64,6 +81,11 @@ const blogsInDb = async () => {
   return blogs.map(blog => blog.toJSON())
 }
 
+const usersInDb = async () => {
+  const users = await User.find({})
+  return users.map(u => u.toJSON())
+}
+
 module.exports = {
-  initialBlogs, nonExistingId, blogsInDb
+  initialBlogs, initialUsers, nonExistingId, blogsInDb, usersInDb
 }
