@@ -1,32 +1,30 @@
-const blogsRouter = require('express').Router()
-const Blog = require('../models/blog')
-const jwt = require('jsonwebtoken')
+const blogsRouter = require("express").Router();
+const Blog = require("../models/blog");
+const jwt = require("jsonwebtoken");
 
-blogsRouter.get('/', async (request, response) => {
-  const blogs = await Blog
-    .find({}).populate('user', { username: 1, name: 1 })
+blogsRouter.get("/", async (request, response) => {
+  const blogs = await Blog.find({}).populate("user", { username: 1, name: 1 });
 
-  response.json(blogs)
-})
+  response.json(blogs);
+});
 
-blogsRouter.get('/:id', async (request, response) => {
-  const blog = await Blog.findById(request.params.id)
+blogsRouter.get("/:id", async (request, response) => {
+  const blog = await Blog.findById(request.params.id);
   if (blog) {
-    response.json(blog)
+    response.json(blog);
   } else {
-    response.status(404).end()
+    response.status(404).end();
   }
-})
+});
 
+blogsRouter.post("/", async (request, response) => {
+  const body = request.body;
+  const token = request.token;
+  const user = request.user;
 
-blogsRouter.post('/', async (request, response) => {
-  const body = request.body
-  const token = request.token
-  const user = request.user
-
-  const decodedToken = jwt.verify(token, process.env.SECRET)
+  const decodedToken = jwt.verify(token, process.env.SECRET);
   if (!(token && decodedToken.id)) {
-    return response.status(401).json({ error: 'token missing or invalid' })
+    return response.status(401).json({ error: "token missing or invalid" });
   }
 
   const blog = await new Blog({
@@ -35,62 +33,59 @@ blogsRouter.post('/', async (request, response) => {
     url: body.url,
     user: user,
     likes: body.likes,
-  })
+  });
 
   if (!blog.title || !blog.url) {
-    response.status(400).end()
+    response.status(400).end();
   }
 
   if (!blog.user) {
-    blog.user = user
+    blog.user = user;
   }
 
   if (!blog.likes) {
-    blog.likes = 0
+    blog.likes = 0;
   }
 
+  const savedBlog = await blog.save();
+  user.blogs = user.blogs.concat(savedBlog._id);
+  await user.save();
 
-  const savedBlog = await blog.save()
-  user.blogs = user.blogs.concat(savedBlog._id)
-  await user.save()
+  response.status(201).json(savedBlog);
+});
 
-  response.status(201).json(savedBlog)
-})
-
-blogsRouter.delete('/:id', async (request, response) => {
-  const token = request.token
-  const decodedToken = jwt.verify(token, process.env.SECRET)
+blogsRouter.delete("/:id", async (request, response) => {
+  const token = request.token;
+  const decodedToken = jwt.verify(token, process.env.SECRET);
   if (!(token && decodedToken.id)) {
-    return response.status(401).json({ error: 'token missing or invalid' })
+    return response.status(401).json({ error: "token missing or invalid" });
   }
 
-  const user = request.user
-  const blog = await Blog.findById(request.params.id)
+  const user = request.user;
+  const blog = await Blog.findById(request.params.id);
 
   if (blog.user.toString() === user.id.toString()) {
-    await Blog.findByIdAndRemove(request.params.id)
-    response.status(204).end()
+    await Blog.findByIdAndRemove(request.params.id);
+    response.status(204).end();
   } else {
-    return response.status(401).json({ error: 'unauthorized operation' })
+    return response.status(401).json({ error: "unauthorized operation" });
   }
-})
+});
 
-blogsRouter.put('/:id', async (request, response) => {
-  const body = request.body
+blogsRouter.put("/:id", async (request, response) => {
+  const body = request.body;
 
   const blog = {
     title: body.title,
     author: body.author,
     url: body.url,
-    likes: body.likes || 0
-  }
+    likes: body.likes || 0,
+  };
 
-  const updatedBlog = await Blog.findByIdAndUpdate(
-    request.params.id,
-    blog,
-    { new: true }
-  )
-  response.json(updatedBlog.toJSON())
-})
+  const updatedBlog = await Blog.findByIdAndUpdate(request.params.id, blog, {
+    new: true,
+  });
+  response.json(updatedBlog.toJSON());
+});
 
-module.exports = blogsRouter
+module.exports = blogsRouter;
